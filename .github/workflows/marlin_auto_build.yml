@@ -1,19 +1,58 @@
-name: Marlin Auto Build - MKS Monster8 V2
+name: Build MKS Monster8 V2 Firmware
 
 on:
-  # Trigger when you push changes to build files
   push:
+    branches: [main]
     paths:
-      - 'builds/**'
+      - 'marlin firmware for voron/**'
       - '.github/workflows/**'
-  # Allow manual trigger from Actions tab
   workflow_dispatch:
-  # Trigger every night at 03:30 UTC to check for new Marlin updates
   schedule:
-    - cron: '30 3 * * *'
+    - cron: '0 3 * * *'
 
 jobs:
-  create_builds:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: zisismaras/marlin_auto_build@v1
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: |
+          pip install platformio
+          pio upgrade
+          pio pkg update --global
+
+      - name: Build firmware
+        run: |
+          cd "marlin firmware for voron/MKS_MONSTER_Marlin-2.0.x/Marlin-2.0.x"
+          pio run -e mks_monster8
+
+      - name: Rename and prepare binary
+        run: |
+          cd "marlin firmware for voron/MKS_MONSTER_Marlin-2.0.x/Marlin-2.0.x"
+          mkdir -p ${{ github.workspace }}/output
+          cp .pio/build/mks_monster8/mks_monster8.bin ${{ github.workspace }}/output/mks_monster8.bin
+          echo "Build completed successfully"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mks-monster8-v2-firmware
+          path: output/mks_monster8.bin
+
+      - name: Create Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: MKS Monster8 V2 Build ${{ github.run_number }}
+          files: output/mks_monster8.bin
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
