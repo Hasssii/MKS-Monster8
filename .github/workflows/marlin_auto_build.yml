@@ -10,6 +10,10 @@ on:
   schedule:
     - cron: '0 3 * * *'
 
+permissions:
+  contents: write    # <-- This fixes the 403 error!
+  actions: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,7 +42,6 @@ jobs:
           cd "marlin firmware for voron/MKS_MONSTER_Marlin-2.0.x/Marlin-2.0.x"
           mkdir -p ${{ github.workspace }}/output
           cp .pio/build/mks_monster8/mks_monster8.bin ${{ github.workspace }}/output/mks_monster8.bin
-          echo "Build completed successfully"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
